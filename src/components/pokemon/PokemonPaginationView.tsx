@@ -1,92 +1,93 @@
-
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { usePokemonPage } from "../../api/pokemon";
-import PokemonCard from "./PokemonCard";
+import { ITEMS_PER_PAGE } from "../../constants/pokemon";
+import { PokemonGrid } from "./PokemonGrid";
+import { PokemonSkeleton } from "./PokemonSkeleton";
+import { PokemonError } from "./PokemonError";
 
 export default function PaginationView() {
   const [page, setPage] = useState(1);
-  const ITEMS_PER_PAGE = 20;
 
   const { data, isLoading, error, refetch } = usePokemonPage(page, ITEMS_PER_PAGE);
 
-  const getIdFromUrl = (url: string) => {
-    const match = url.match(/\/pokemon\/(\d+)\//);
-    return match ? match[1] : "";
+  const totalPages = useMemo(() => {
+    return data ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
+  }, [data]);
+
+  const pageNumbers = useMemo(() => {
+    return Array.from({ length: totalPages }, (_, i) => i + 1)
+      .slice(Math.max(0, page - 3), page + 2);
+  }, [totalPages, page]);
+
+  const handlePrevious = () => {
+    setPage((p) => Math.max(1, p - 1));
   };
 
-  const totalPages = data ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
+  const handleNext = () => {
+    setPage((p) => Math.min(totalPages, p + 1));
+  };
+
+  const handlePageClick = (p: number) => {
+    setPage(p);
+  };
+
+  const handleRetry = () => {
+    refetch();
+  };
 
   return (
     <div>
-            {error && (
-        <div className="text-center text-red-500 mb-4">
-          {error.message} <button onClick={() => refetch()} className="underline text-blue-600">Retry</button>
-        </div>
-      )}
-      {isLoading && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-6 mb-6">
-          {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
-            <div key={i} className="p-4 border rounded shadow-sm">
-              <div className="w-20 h-20 mx-auto mb-2 skeleton" />
-              <div className="h-4 w-3/4 mx-auto skeleton" />
-            </div>
-          ))}
-        </div>
-      )}
+      {error && <PokemonError error={error as Error} onRetry={handleRetry} />}
+      
+      {isLoading && <PokemonSkeleton />}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-6 mb-6">
-        {data?.results.map((pokemon) => {
-          /// I CANT GET  ID FROM API SO I GET IT FROM URL
-          const id = getIdFromUrl(pokemon.url);
-          return (
-            <PokemonCard
-              key={pokemon.name}
-              name={pokemon.name}
-              id={Number(id)}
-              imageUrl={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`}
-            />
-          );
-        })}
-      </div>
+      {!isLoading && <PokemonGrid results={data?.results} />}
 
-      <div className="flex flex-wrap justify-center items-center gap-2">
+      <nav 
+        className="flex flex-wrap justify-center items-center gap-2"
+        aria-label="Pagination navigation"
+      >
         <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          onClick={handlePrevious}
           disabled={page === 1}
-          className="  px-3 py-1 border rounded-lg border-gray-200 disabled:opacity-40 bg-white hover:bg-gray-100 cursor-pointer"
+          className="px-3 py-1 border rounded-lg border-gray-200 disabled:opacity-40 bg-white hover:bg-gray-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2"
+          aria-label="Go to previous page"
+          aria-disabled={page === 1}
         >
           Previous
         </button>
 
-        {Array.from({ length: totalPages }, (_, i) => i + 1)
-          .slice(Math.max(0, page - 3), page + 2)
-          .map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`px-3 py-1 rounded-lg border border-gray-200 cursor-pointer ${
-                p === page
-                  ? "bg-yellow-400 text-white font-bold"
-                  : "bg-white hover:bg-gray-100"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+        {pageNumbers.map((p) => (
+          <button
+            key={p}
+            onClick={() => handlePageClick(p)}
+            className={`px-3 py-1 rounded-lg border border-gray-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 ${
+              p === page
+                ? "bg-yellow-400 text-white font-bold"
+                : "bg-white hover:bg-gray-100"
+            }`}
+            aria-label={`Go to page ${p}`}
+            aria-current={p === page ? "page" : undefined}
+          >
+            {p}
+          </button>
+        ))}
 
         <button
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          onClick={handleNext}
           disabled={page === totalPages}
-          className="px-3 py-1 border rounded-lg border-gray-200 disabled:opacity-40 bg-white hover:bg-gray-100 cursor-pointer "
+          className="px-3 py-1 border rounded-lg border-gray-200 disabled:opacity-40 bg-white hover:bg-gray-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2"
+          aria-label="Go to next page"
+          aria-disabled={page === totalPages}
         >
           Next
         </button>
-      </div>
+      </nav>
 
-      <p className="mt-4 text-center text-gray-500 text-sm">
+      <p className="mt-4 text-center text-gray-500 text-sm" aria-live="polite">
         Page {page} of {totalPages}
       </p>
     </div>
   );
-};
+}
 

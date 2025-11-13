@@ -1,61 +1,37 @@
-
-import { useEffect, useState } from "react";
-import { usePokemonPage } from "../../api/pokemon";
-import PokemonCard from "./PokemonCard";
+import { useInfinitePokemon } from "../../hooks/useInfinitePokemon";
+import { PokemonGrid } from "./PokemonGrid";
+import { PokemonError } from "./PokemonError";
+import Loader from "../Loader";
 
 export default function LoadMoreView() {
-  const [page, setPage] = useState(1);
-  const [allData, setAllData] = useState<any[]>([]);
-  const [hasMore, setHasMore] = useState(true);
+  const { allData, hasMore, isLoading, error, loadMore, refetch } = useInfinitePokemon();
 
-  const ITEMS_PER_PAGE = 20;
-
-  const { data, isLoading, error, refetch } = usePokemonPage(page, ITEMS_PER_PAGE);
-
-  const getIdFromUrl = (url: string) => {
-    const match = url.match(/\/pokemon\/(\d+)\//);
-    return match ? match[1] : "";
+  const handleLoadMore = () => {
+    loadMore();
   };
 
-  useEffect(() => {
-    if (data?.results.length) {
-      setAllData((prev) => [...prev, ...data.results]);
-      setHasMore(!!data.next);
-    }
-  }, [data]);
+  const handleRetry = () => {
+    refetch();
+  };
 
   return (
     <div>
-      {error && (
-        <div className="text-center text-red-500 mb-4">
-          {error.message} <button onClick={() => refetch()} className="underline text-blue-600">Retry</button>
-        </div>
-      )}
+      {error && <PokemonError error={error} onRetry={handleRetry} />}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-6 mb-6">
-        {allData.map((pokemon) => {
-          /// I CANT GET  ID FROM API SO I GET IT FROM URL
-          const id = getIdFromUrl(pokemon.url);
-          return (
-            <PokemonCard
-              key={pokemon.name}
-              name={pokemon.name}
-              id={Number(id)}
-              imageUrl={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`}
-            />
-          );
-        })}
-      </div>
+      <PokemonGrid results={allData} />
 
       {isLoading && (
-        <div className="text-center text-gray-500 mb-4">Loading...</div>
+        <div className="flex justify-center mb-4" role="status" aria-live="polite">
+          <Loader />
+        </div>
       )}
 
       {hasMore && !isLoading && (
         <div className="flex justify-center">
           <button
-            onClick={() => setPage((p) => p + 1)}
-            className="px-8 py-3 cursor-pointer rounded-lg font-medium shadow-md bg-yellow-400 text-white hover:bg-yellow-500 transition"
+            onClick={handleLoadMore}
+            className="px-8 py-3 cursor-pointer rounded-lg font-medium shadow-md bg-yellow-400 text-white hover:bg-yellow-500 transition focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2"
+            aria-label="Load more Pokémon"
           >
             Load More
           </button>
@@ -63,10 +39,10 @@ export default function LoadMoreView() {
       )}
 
       {!hasMore && (
-        <p className="text-center text-sm text-gray-400 mt-4">
+        <p className="text-center text-sm text-gray-400 mt-4" role="status" aria-live="polite">
           You've reached the end!
         </p>
       )}
     </div>
   );
-};
+}

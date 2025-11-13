@@ -18,10 +18,14 @@ const Browser = () => {
             Discover and explore Pokémon with page controls
           </p>
 
-          <div className="mt-6 flex justify-center gap-4">
+          <div className="mt-6 flex justify-center gap-4" role="tablist" aria-label="View mode selection">
             <button
+              id="tab-pagination"
               onClick={() => setMode("pagination")}
-              className={`px-6 py-3 rounded-lg  font-medium shadow-md ${
+              role="tab"
+              aria-selected={mode === "pagination"}
+              aria-controls="pokemon-view"
+              className={`px-6 py-3 rounded-lg font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 ${
                 mode === "pagination"
                   ? "bg-yellow-400 text-white"
                   : "bg-white text-gray-700 hover:bg-gray-100 cursor-pointer"
@@ -31,8 +35,12 @@ const Browser = () => {
             </button>
 
             <button
+              id="tab-loadmore"
               onClick={() => setMode("loadmore")}
-              className={`px-6 py-3 rounded-lg  font-medium shadow-md ${
+              role="tab"
+              aria-selected={mode === "loadmore"}
+              aria-controls="pokemon-view"
+              className={`px-6 py-3 rounded-lg font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 ${
                 mode === "loadmore"
                   ? "bg-yellow-400 text-white"
                   : "bg-white text-gray-700 hover:bg-gray-100 cursor-pointer"
@@ -44,7 +52,9 @@ const Browser = () => {
         </div>
 
         <ErrorBoundary>
-          {mode === "pagination" ? <PaginationView /> : <LoadMoreView />}
+          <div id="pokemon-view" role="tabpanel" aria-labelledby={`tab-${mode}`}>
+            {mode === "pagination" ? <PaginationView /> : <LoadMoreView />}
+          </div>
         </ErrorBoundary>
       </div>
     </div>
